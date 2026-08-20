@@ -1,8 +1,9 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'product_screen.dart';
+import 'cart_screen.dart';
+import 'chat_screen.dart';
 import '../widgets/custom_text.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -38,10 +39,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               : CustomText(
                   text: (_selectedIndex == 1)
-                      ? 'Chat'
-                      : (_selectedIndex == 2)
-                          ? 'Profile'
-                          : 'Home',
+                      ? 'Cart'
+                      : 'Profile',
                   fontSize: 20.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -62,14 +61,14 @@ class _HomeScreenState extends State<HomeScreen> {
           physics: const NeverScrollableScrollPhysics(),
           controller: _pageController,
 
-          children: const [
-            ProductScreen(),
+          children: [
+            const ProductScreen(),
 
-            Center(
-              child: Text('Chat'),
+            CartScreen(
+              userId: 5,
             ),
 
-            Center(
+            const Center(
               child: Text('Profile'),
             ),
           ],
@@ -81,11 +80,25 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
 
+        // Chat Floating Action Button
+        // Hidden when Cart is selected
+        floatingActionButton: _selectedIndex == 1
+            ? null
+            : FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChatScreen(),
+                    ),
+                  );
+                },
+                child: const Icon(Icons.chat),
+              ),
+
         bottomNavigationBar: BottomNavigationBar(
           showSelectedLabels: false,
-          // selected item
           showUnselectedLabels: false,
-          // unselected item
           onTap: _onTappedBar,
 
           items: const [
@@ -94,8 +107,8 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Shop',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.chat),
-              label: 'Chat',
+              icon: Icon(Icons.shopping_cart),
+              label: 'Cart',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person),
@@ -123,4 +136,3 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 }
-

@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -29,5 +28,23 @@ class ProductService {
       );
     }
   }
-}
 
+  Future<Product> getProductById(int productId) async {
+    final response = await http
+        .get(
+          Uri.parse('$host/products/$productId'),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data =
+          jsonDecode(response.body);
+
+      return Product.fromJson(data);
+    } else {
+      throw Exception(
+        'Failed to load product: ${response.statusCode}',
+      );
+    }
+  }
+}
