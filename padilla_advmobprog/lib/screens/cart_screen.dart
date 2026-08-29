@@ -4,15 +4,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../models/cart.dart';
 import '../services/cart_service.dart';
 import '../services/product_service.dart';
+import '../services/user_service.dart';
 import '../widgets/custom_text.dart';
 import 'product_detail_screen.dart';
 
 class CartScreen extends StatefulWidget {
-  final int userId;
-
   const CartScreen({
     super.key,
-    required this.userId,
   });
 
   @override
@@ -22,6 +20,7 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   final CartService _cartService = CartService();
   final ProductService _productService = ProductService();
+  final UserService _userService = UserService();
 
   Cart? _cart;
   bool _isLoading = true;
@@ -32,32 +31,41 @@ class _CartScreenState extends State<CartScreen> {
     _loadCart();
   }
 
-// ENHANCEMENT: Load and render only the cart associated with the current user's ID.
-  Future<void> _loadCart() async {
-    try {
-      final cart =
-          await _cartService.getCartByUserId(widget.userId);
+// ENHANCEMENT 3:
+// Retrieves the logged-in user's ID from the saved user data
+// and loads only the cart belonging to that user.
+Future<void> _loadCart() async {
+  try {
+    final userData = await _userService.getUserData();
 
-      if (!mounted) return;
+    final userId = userData['id'];
 
-      setState(() {
-        _cart = cart;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load cart: $e'),
-        ),
-      );
+    if (userId == null || userId == 0) {
+      throw Exception('No logged-in user found.');
     }
+
+    final cart = await _cartService.getCartByUserId(userId);
+
+    if (!mounted) return;
+
+    setState(() {
+      _cart = cart;
+      _isLoading = false;
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Failed to load cart: $e'),
+      ),
+    );
   }
+}
 
   Future<void> _openProduct(int productId) async {
     try {
