@@ -94,7 +94,7 @@ class _SplashScreenState extends State<SplashScreen> {
             // ENHANCEMENT 1: LAB 4
             // Displays the application name below the logo.
             Text(
-              'NUBD Exchange',
+              'DUMMYJsonShop',
               style: TextStyle(
                 fontSize: 24.sp,
                 fontWeight: FontWeight.bold,

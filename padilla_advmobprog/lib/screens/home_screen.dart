@@ -52,18 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Logout
-  Future<void> _logout() async {
-    await _userService.logout();
-
-    if (!mounted) return;
-
-    Navigator.pushReplacementNamed(
-      context,
-      '/signin',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -89,24 +77,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
           actions: [
-  IconButton(
-    icon: Icon(
-      Icons.logout,
-      size: 24.sp,
-    ),
-    tooltip: 'Logout',
-    onPressed: _logout,
-  ),
-
-  IconButton(
-    icon: Icon(
-      Icons.settings,
-      size: 24.sp,
-    ),
-    onPressed: () =>
-        Navigator.pushNamed(context, '/settings'),
-  ),
-],
+            IconButton(
+              icon: Icon(
+                Icons.settings,
+                size: 24.sp,
+              ),
+              onPressed: () =>
+                  Navigator.pushNamed(context, '/settings'),
+            ),
+          ],
         ),
 
         body: PageView(

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "498466262519",
+    "project_id": "advmobprog-firebase-6a5bf",
+    "storage_bucket": "advmobprog-firebase-6a5bf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:498466262519:android:7f3f7e9720a879a9ef72f2",
+        "android_client_info": {
+          "package_name": "com.example.padilla_advmobprog"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAha5Df2q-MkHAJwVGA6SSWttcFCs4hY-w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

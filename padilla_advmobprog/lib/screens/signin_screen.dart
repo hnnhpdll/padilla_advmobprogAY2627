@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../models/login_type.dart';
 import '../services/user_service.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -24,13 +25,14 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // ENHANCEMENT 3: PROFILE SCREEN
+  // Stores the authentication method selected by the user.
+  LoginType _loginType = LoginType.dummyJson;
+
   // ENHANCEMENT 2: LAB 4
   // Uses UserService to authenticate the user through
-  // DummyJSON's authentication endpoint. The user's
-  // authentication tokens and user information are saved
-  // by UserService for persistent authentication.
-  // After successful authentication, the user is redirected
-  // to the Home screen.
+  // DummyJSON or Firebase Authentication depending on
+  // the selected LoginType.
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -41,25 +43,45 @@ class _SignInScreenState extends State<SignInScreen> {
     });
 
     try {
-      final response = await _userService.loginUser(
-        _usernameController.text.trim(),
-        _passwordController.text,
-      );
+      if (_loginType == LoginType.dummyJson) {
+        final response = await _userService.loginUser(
+          _usernameController.text.trim(),
+          _passwordController.text,
+        );
+await _userService.saveLoginType('dummyJson');
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+        setState(() {
+          _isLoading = false;
+        });
 
-      // ENHANCEMENT 2: LAB 4
-      // Redirects the authenticated user to the Home screen
-      // and passes the returned user data as route arguments.
-      Navigator.pushReplacementNamed(
-        context,
-        '/home',
-        arguments: response,
-      );
+        Navigator.pushReplacementNamed(
+          context,
+          '/home',
+          arguments: response,
+        );
+      } else {
+        final userCredential = await _userService.signIn(
+          email: _usernameController.text.trim(),
+          password: _passwordController.text,
+        );
+
+        await _userService.refreshFirebaseToken();
+        await _userService.saveLoginType('firebase');
+
+        if (!mounted) return;
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        Navigator.pushReplacementNamed(
+          context,
+          '/home',
+          arguments: userCredential.user,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -67,8 +89,6 @@ class _SignInScreenState extends State<SignInScreen> {
         _isLoading = false;
       });
 
-      // ENHANCEMENT 2: LAB 4
-      // Displays an error message when authentication fails.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -139,22 +159,66 @@ class _SignInScreenState extends State<SignInScreen> {
 
                   SizedBox(height: 40.h),
 
+                  // ENHANCEMENT 3: PROFILE SCREEN
+                  // Allows the user to select whether to log in
+                  // using DummyJSON or Firebase Authentication.
+                  DropdownButtonFormField<LoginType>(
+                    value: _loginType,
+                    decoration: const InputDecoration(
+                      labelText: 'Login Type',
+                      prefixIcon: Icon(Icons.login),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: LoginType.dummyJson,
+                        child: Text('DummyJSON'),
+                      ),
+                      DropdownMenuItem(
+                        value: LoginType.firebase,
+                        child: Text('Firebase'),
+                      ),
+                    ],
+                    onChanged: _isLoading
+                        ? null
+                        : (value) {
+                            if (value == null) return;
+
+                            setState(() {
+                              _loginType = value;
+                              _usernameController.clear();
+                            });
+                          },
+                  ),
+
+                  SizedBox(height: 18.h),
+
                   // ENHANCEMENT 2: LAB 4
-                  // Username input field used for authentication.
+                  // Username or email input field used for authentication.
                   TextFormField(
                     controller: _usernameController,
-                    keyboardType: TextInputType.text,
-                    decoration: const InputDecoration(
-                      labelText: 'Username',
+                    keyboardType:
+                        _loginType == LoginType.firebase
+                            ? TextInputType.emailAddress
+                            : TextInputType.text,
+                    decoration: InputDecoration(
+                      labelText:
+                          _loginType == LoginType.firebase
+                              ? 'Email Address'
+                              : 'Username',
                       prefixIcon: Icon(
-                        Icons.person_outline,
+                        _loginType == LoginType.firebase
+                            ? Icons.email_outlined
+                            : Icons.person_outline,
                       ),
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null ||
                           value.trim().isEmpty) {
-                        return 'Please enter your username';
+                        return _loginType == LoginType.firebase
+                            ? 'Please enter your email address'
+                            : 'Please enter your username';
                       }
 
                       return null;
@@ -202,8 +266,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                   // ENHANCEMENT 2: LAB 4
                   // Custom Sign In button that starts the
-                  // authentication process and shows a loading
-                  // indicator while the request is processing.
+                  // selected authentication process.
                   SizedBox(
                     height: 52.h,
                     child: ElevatedButton(
@@ -225,6 +288,21 @@ class _SignInScreenState extends State<SignInScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                    ),
+                  ),
+
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/signup',
+                      );
+                    },
+                    child: Text(
+                      "Don't have an account? Sign Up",
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                      ),
                     ),
                   ),
                 ],

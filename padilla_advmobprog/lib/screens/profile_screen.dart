@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../models/user.dart';
 import '../services/user_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -14,7 +13,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
 
-  User? _user;
+  Map<String, dynamic>? _userData;
+  String _loginType = '';
   bool _isLoading = true;
 
   @override
@@ -23,19 +23,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUser();
   }
 
-  // ENHANCEMENT 3: LAB 4
-  // Uses UserService to retrieve the currently authenticated
-  // user's information from DummyJSON's /auth/me endpoint.
-  // The returned data is converted into the custom User model
-  // and stored in the _user variable.
+  // ENHANCEMENT 3: PROFILE SCREEN
+  // Retrieves the logged-in user's information depending
+  // on whether the user signed in using DummyJSON or Firebase.
   Future<void> _loadUser() async {
     try {
-      final user = await _userService.getCurrentUser();
+      final loginType = await _userService.getLoginType();
+      final userData = await _userService.getUserData();
 
       if (!mounted) return;
 
       setState(() {
-        _user = user;
+        _loginType = loginType;
+        _userData = userData;
         _isLoading = false;
       });
     } catch (e) {
@@ -55,6 +55,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // ENHANCEMENT 3: PROFILE SCREEN
+  // Allows the Firebase user to update their username.
+  Future<void> _showUpdateUsernameDialog() async {
+  String newUsername =
+      (_userData?['username'] ?? '').toString();
+
+  final result = await showDialog<String>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Update Username'),
+        content: TextFormField(
+          initialValue: newUsername,
+          onChanged: (value) {
+            newUsername = value;
+          },
+          decoration: const InputDecoration(
+            labelText: 'Username',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final username = newUsername.trim();
+
+              if (username.isEmpty) {
+                return;
+              }
+
+              Navigator.pop(dialogContext, username);
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (!mounted || result == null || result.isEmpty) {
+    return;
+  }
+
+  try {
+    await _userService.updateUsername(result);
+
+    if (!mounted) return;
+
+    setState(() {
+      _userData!['username'] = result;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Username updated successfully.',
+        ),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Failed to update username: $e',
+        ),
+      ),
+    );
+  }
+}
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -63,7 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    if (_user == null) {
+    if (_userData == null) {
       return const Center(
         child: Text(
           'Unable to load user profile',
@@ -71,21 +149,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
+    final isFirebase = _loginType == 'firebase';
+
+    final firstName = isFirebase
+        ? (_userData!['fName'] ?? '').toString()
+        : (_userData!['firstName'] ?? '').toString();
+
+    final lastName = isFirebase
+        ? (_userData!['lName'] ?? '').toString()
+        : (_userData!['lastName'] ?? '').toString();
+
+    final username =
+        (_userData!['username'] ?? '').toString();
+
+    final email = isFirebase
+        ? (_userData!['emailAddress'] ?? '').toString()
+        : (_userData!['email'] ?? '').toString();
+
+    final image =
+        (_userData!['image'] ?? '').toString();
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(20.r),
       child: Column(
         children: [
           SizedBox(height: 20.h),
 
-          // ENHANCEMENT 3: LAB 4
-          // Renders the logged-in user's profile image
-          // using the image value stored in the User model.
+          // ENHANCEMENT 3: PROFILE SCREEN
+          // Displays the DummyJSON profile image when available.
           CircleAvatar(
             radius: 55.r,
-            backgroundImage: _user!.image.isNotEmpty
-                ? NetworkImage(_user!.image)
+            backgroundImage: !isFirebase && image.isNotEmpty
+                ? NetworkImage(image)
                 : null,
-            child: _user!.image.isEmpty
+            child: isFirebase || image.isEmpty
                 ? Icon(
                     Icons.person,
                     size: 55.sp,
@@ -95,11 +192,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           SizedBox(height: 20.h),
 
-          // ENHANCEMENT 3: LAB 4
-          // Renders the user's first name and last name
-          // from the custom User model.
           Text(
-            '${_user!.firstName} ${_user!.lastName}',
+            '$firstName $lastName',
             style: TextStyle(
               fontSize: 24.sp,
               fontWeight: FontWeight.bold,
@@ -108,10 +202,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           SizedBox(height: 5.h),
 
-          // ENHANCEMENT 3: LAB 4
-          // Renders the authenticated user's username.
           Text(
-            '@${_user!.username}',
+            '@$username',
             style: TextStyle(
               fontSize: 16.sp,
               color: Colors.grey,
@@ -120,46 +212,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           SizedBox(height: 30.h),
 
-          // ENHANCEMENT 3: LAB 4
-          // Renders the user's information from the User model
-          // through reusable profile information components.
           _buildProfileItem(
             Icons.person_outline,
             'Username',
-            _user!.username,
+            username,
           ),
 
           _buildProfileItem(
             Icons.email_outlined,
-            'Email',
-            _user!.email,
+            isFirebase ? 'Email Address' : 'Email',
+            email,
           ),
 
           _buildProfileItem(
             Icons.badge_outlined,
             'First Name',
-            _user!.firstName,
+            firstName,
           ),
 
           _buildProfileItem(
             Icons.badge_outlined,
             'Last Name',
-            _user!.lastName,
+            lastName,
           ),
 
-          _buildProfileItem(
-            Icons.wc_outlined,
-            'Gender',
-            _user!.gender,
-          ),
+          if (isFirebase) ...[
+            _buildProfileItem(
+              Icons.cake_outlined,
+              'Age',
+              (_userData!['age'] ?? '').toString(),
+            ),
+
+            _buildProfileItem(
+              Icons.phone_outlined,
+              'Contact Number',
+              (_userData!['contactNo'] ?? '').toString(),
+            ),
+          ] else ...[
+            _buildProfileItem(
+              Icons.wc_outlined,
+              'Gender',
+              (_userData!['gender'] ?? '').toString(),
+            ),
+          ],
+
+          SizedBox(height: 10.h),
+
+          if (isFirebase)
+  SizedBox(
+    width: double.infinity,
+    child: ElevatedButton.icon(
+      onPressed: _showUpdateUsernameDialog,
+      icon: const Icon(Icons.edit),
+      label: const Text('Update Username'),
+    ),
+  ),
         ],
       ),
     );
   }
 
-  // ENHANCEMENT 3: LAB 4
-  // Reusable widget for displaying the user's information
-  // from the custom User model.
+  // ENHANCEMENT 3: PROFILE SCREEN
+  // Reusable widget for displaying user information.
   Widget _buildProfileItem(
     IconData icon,
     String label,
