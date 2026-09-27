@@ -84,3 +84,49 @@ This separates the responsibilities of each part and makes the application more 
 ### CartScreen using the saved User ID
 
 The same saved user data can be used by the cart_screen.dart to determine which cart should be displayed. The user_service.dart retrieves the saved id from SharedPreferences, and this userId is passed to getCartByUserId(userId) so that the screen displays the cart belonging to the currently logged-in user instead of using a hardcoded ID.
+
+## Lab Activity 5
+## Workflow from Sign in to Sign up
+-two authentication approach (LginType) DummyJSON & Firebase
+## DummyJSON
+-when the user signs in, application sends the entered username and password to the DummyJSON authentication API 
+-if valid, returns the user's information together with an access token and refresh token
+-tokens are then saved locally using SharedPreferences
+-saved session allows the application to retrieve the user's information and maintain the login state
+
+## Firebase
+-instead of sending credentials to an external API like DummyJSON, we use FirebaseAuth SDK
+-user signs in using email and password
+-firebase manages the authentication session and provides an ID token that can be refreshed when needed
+
+## Sign up Firebase implentation
+-uses createUserWithEmailAndPassword() to create the account
+-aaccount is created,  the additional user information such as first name, last name, age, contact number, and username will be saved in the Firestore users collection
+-document uses the Firebase user's UID so profile is connected to the authenticated account
+
+## Main idea of user_service.dart (UserService)
+-centralize the user and authentication-related functions in one service
+-instead of putting authentication logic directly in every screen, functions such as signIn, createAccount, signOut, updateUsername, deleteAccount, and resetPasswordFromCurrentPassword is used and created
+-handles the DummyJSON functions as well like login, getting the current user, saving user data, and refreshing the access token.
+-becaue of this, screens only need to call the appropriate UserService function
+-makes the code more organized and avoids repeating authentication and user-data logic in different parts of the application
+
+# Difference between DummyJSON and Firebase
+-main is where the authentication is handled
+
+DummyJSON
+-application communicates with the DummyJSON API
+-receives tokens from the API and stores them locally using SharedPreferences
+-demonstrates an API-based authentication approach
+
+Firebase
+-handled through the Firebase Authentication SDK
+-User profile information is stored in Firestore, and Firestore security rules are used to control access to the user's data.
+-provides a more integrated authentication and cloud database approach.
+
+# Benefits of Firebase in Flutter Applicatioon
+-provides real user authentication, where accounts can be created and managed through Firebase Authentication
+-allows us to store additional user information in Firestore, such as the user's name, age, contact number, and username
+-provides security rules, so a user can only read or modify their own document in the users collection because the UID of the authenticated user must match the document ID
+-provides built-in authentication features that we used in our application, such as sign in, sign out, password updating, account deletion, and token refresh
+-suitable for an application that needs persistent user accounts and cloud-based data storage
