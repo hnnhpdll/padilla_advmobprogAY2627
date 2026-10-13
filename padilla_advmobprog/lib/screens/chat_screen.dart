@@ -103,6 +103,7 @@ Widget build(BuildContext context) {
           SizedBox(height: 10.h),
 
           // Users Stream
+          // ENHANCEMENT 1: Display all registered users in the chat list
           StreamBuilder<List<Map<String, dynamic>>>(
             stream: _chatService.getUsersStream(),
             builder: (context, snapshot) {
@@ -143,7 +144,8 @@ Widget build(BuildContext context) {
               }
 
               final currentUserId = _chatService.currentUserId;
-
+              
+              // ENHANCEMENT 2: Search users by name, username, or email
               final users = snapshot.data!.where((user) {
                 // Don't display the currently logged-in user
                 if (user['uid'] == currentUserId) {
@@ -189,60 +191,87 @@ Widget build(BuildContext context) {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: users.length,
                 itemBuilder: (context, index) {
-                  final user = users[index];
+  final user = users[index];
 
-                  final firstName =
-                      user['fName']?.toString() ?? 'Unknown';
+  final firstName =
+      user['fName']?.toString() ?? 'Unknown';
 
-                  final lastName =
-                      user['lName']?.toString() ?? '';
+  final lastName =
+      user['lName']?.toString() ?? '';
 
-                  final email =
-                      user['emailAddress']?.toString() ?? 'No email';
+  final email =
+      user['emailAddress']?.toString() ?? 'No email';
 
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatDetailScreen(
-                            currentUserEmail: _currentUserEmail ?? '',
-                            tappedUser: user,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: CustomText(
-                            text: firstName.isNotEmpty
-                                ? firstName[0].toUpperCase()
-                                : '?',
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        title: CustomText(
-                          text: '$firstName $lastName',
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        subtitle: CustomText(
-                          text: email,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              );
+  if (currentUserId == null) {
+    return const SizedBox.shrink();
+  }
+
+  return StreamBuilder<int>(
+    stream: _chatService.getUnreadCount(
+      currentUserId,
+      user['uid'].toString(),
+    ),
+    builder: (context, unreadSnapshot) {
+      final unreadCount = unreadSnapshot.data ?? 0;
+      final hasUnread = unreadCount > 0;
+
+      return Card(
+        child: ListTile(
+          leading: CircleAvatar(
+            child: CustomText(
+              text: firstName.isNotEmpty
+                  ? firstName[0].toUpperCase()
+                  : '?',
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          title: CustomText(
+            text: '$firstName $lastName',
+            fontSize: 18.sp,
+            fontWeight: hasUnread
+                ? FontWeight.bold
+                : FontWeight.normal,
+          ),
+          subtitle: CustomText(
+            text: email,
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w300,
+          ),
+          trailing: hasUnread
+              ? Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                  ),
+                  child: CustomText(
+                    text: unreadCount.toString(),
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              : null,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatDetailScreen(
+                  currentUserEmail: _currentUserEmail ?? '',
+                  tappedUser: user,
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    },
+  );
+},              );
             },
           ),
         ],
       ),
-    )
-    );
-  }
+    ),
+  );
+}
 }

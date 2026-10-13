@@ -137,6 +137,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         }
 
         final currentUserId = snap.data!;
+// ENHANCEMENT 3: Mark received messages as read when the chat is opened
+
+        chatService.markMessagesAsRead(
+  currentUserId,
+  tappedUserId,
+);
 
         return Scaffold(
           appBar: AppBar(
@@ -149,9 +155,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
           body: Column(
             children: [
-              // =====================================================
+        
               // MESSAGES
-              // =====================================================
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
                   stream: chatService.getMessage(
@@ -228,51 +233,104 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         final message =
                             (data['message'] ?? '')
                                 .toString();
+// ENHANCEMENT 3: Display the timestamp of each message
+                                final timestamp = data['timestamp'] is Timestamp
+    ? data['timestamp'] as Timestamp
+    : null;
 
                         final isMe =
                             senderId == currentUserId;
 
-                        return Align(
-                          alignment: isMe
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Container(
-                            constraints:
-                                BoxConstraints(
-                              maxWidth:
-                                  MediaQuery.of(context)
-                                          .size
-                                          .width *
-                                      0.75,
-                            ),
-                            margin: EdgeInsets.only(
-                              bottom: 8.h,
-                            ),
-                            padding:
-                                EdgeInsets.symmetric(
-                              horizontal: 14.w,
-                              vertical: 10.h,
-                            ),
-                            decoration:
-                                BoxDecoration(
-                              color: isMe
-                                  ? Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest,
-                              borderRadius:
-                                  BorderRadius.circular(
-                                15.r,
-                              ),
-                            ),
-                           child: CustomText(
-  text: message,
-  fontSize: 15.sp,
+// ENHANCEMENT 3: Redesigned chat detail screen with
+// modern chat bubbles, animations, sending status,
+// and message checkmarks
+// ENHANCEMENT 3: Message slide-in animation
+                        return TweenAnimationBuilder<Offset>(
+  tween: Tween<Offset>(
+    begin: isMe
+        ? const Offset(0.15, 0)
+        : const Offset(-0.15, 0),
+    end: Offset.zero,
+  ),
+  duration: const Duration(milliseconds: 300),
+  curve: Curves.easeOut,
+  builder: (context, offset, child) {
+    return Transform.translate(
+      offset: offset * 20,
+      child: child,
+    );
+  },
+  child: Align(
+    alignment: isMe
+        ? Alignment.centerRight
+        : Alignment.centerLeft,
+    child: Container(
+      constraints: BoxConstraints(
+        maxWidth:
+            MediaQuery.of(context).size.width * 0.75,
+      ),
+      margin: EdgeInsets.only(
+        bottom: 8.h,
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: 15.w,
+        vertical: 10.h,
+      ),
+      decoration: BoxDecoration(
+        color: isMe
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(18.r),
+          topRight: Radius.circular(18.r),
+          bottomLeft: Radius.circular(
+            isMe ? 18.r : 4.r,
+          ),
+          bottomRight: Radius.circular(
+            isMe ? 4.r : 18.r,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Flexible(
+  child: Column(
+    crossAxisAlignment:
+        isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+    children: [
+      CustomText(
+        text: message,
+        fontSize: 15.sp,
+      ),
+      SizedBox(height: 3.h),
+      CustomText(
+        text: timestamp != null
+        // ENHANCEMENT 3: Display message time
+            ? timestamp.toDate().toLocal().toString().substring(11, 16)
+            : '',
+        fontSize: 10.sp,
+      ),
+    ],
+  ),
 ),
-                          ),
-                        );
+
+          if (isMe) ...[
+            SizedBox(width: 5.w),
+            Icon(
+              // ENHANCEMENT 3: Message delivery
+              Icons.done_all,
+              size: 16.sp,
+            ),
+          ],
+        ],
+      ),
+    ),
+  ),
+);
                       },
                     );
                   },
@@ -324,16 +382,25 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       ),
 
                       SizedBox(width: 8.w),
-
+                      // ENHANCEMENT 3: Display sending status while the message is being sent _isSending
                       _isSending
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child:
-                                  CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
+    ? Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 18,
+            width: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+            ),
+          ),
+          SizedBox(width: 6.w),
+          CustomText(
+            text: 'Sending...',
+            fontSize: 12.sp,
+          ),
+        ],
+      )
                           : IconButton(
                               onPressed: () {
                                 _send(

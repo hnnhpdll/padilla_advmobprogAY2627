@@ -11,9 +11,7 @@ import '../models/user.dart';
 class UserService {
   Map<String, dynamic> data = {};
 
-  // ============================================================
   // FIREBASE AUTHENTICATION
-  // ============================================================
 
   final firebase_auth.FirebaseAuth firebaseAuth =
       firebase_auth.FirebaseAuth.instance;
